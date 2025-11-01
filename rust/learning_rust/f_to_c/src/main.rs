@@ -1,4 +1,5 @@
 use std::io;
+
 fn main() {
     let mut fahreinheit = String::new();
     println!("Enter the temperature in fahreinheit:");

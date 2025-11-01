@@ -1,97 +1,48 @@
-#[derive(Debug)]
-#[allow(unused)]
-enum UsState {
-    Alabama,
-    Alaska,
-    Arizona,
-    Arkansas,
-    California,
-    Colorado,
-    Connecticut,
-    Delaware,
-    Florida,
-    Georgia,
-    Hawaii,
-    Idaho,
-    Illinois,
-    Indiana,
-    Iowa,
-    Kansas,
-    Kentucky,
-    Louisiana,
-    Maine,
-    Maryland,
-    Massachusetts,
-    Michigan,
-    Minnesota,
-    Mississippi,
-    Missouri,
-    Montana,
-    Nebraska,
-    Nevada,
-    NewHampshire,
-    NewJersey,
-    NewMexico,
-    NewYork,
-    NorthCarolina,
-    NorthDakota,
-    Ohio,
-    Oklahoma,
-    Oregon,
-    Pennsylvania,
-    RhodeIsland,
-    SouthCarolina,
-    SouthDakota,
-    Tennessee,
-    Texas,
-    Utah,
-    Vermont,
-    Virginia,
-    Washington,
-    WestVirginia,
-    Wisconsin,
-    Wyoming,
-}
+// #[derive(Debug)]
+// enum UsState {
+//     Alabama,
+//     Alaska,
+//     Delaware,
+//     //more
+// }
+//
+// enum Coin {
+//     Penny,
+//     Nickel,
+//     Dime,
+//     Quarter(UsState),
+// }
 
-#[derive(Debug)]
-enum Coin {
-    Penny,
-    Nickel,
-    Dime,
-    Quarter(UsState),
-}
+// impl Coin {
+//     fn value(&self) -> usize {
+//         match self {
+//             Coin::Penny => {
+//                 println!("Lucky Penny!");
+//                 1
+//             }
+//             Coin::Nickel => 5,
+//             Coin::Dime => 10,
+//             Coin::Quarter(state) => {
+//                 println!("Quarter from {state:?}!");
+//                 25
+//             }
+//         }
+//     }
+// }
 
 fn main() {
-    // let penny = Coin::Penny;
-    // let nickel = Coin::Nickel;
-    // let dime = Coin::Dime;
-    // let quarter = Coin::Quarter(UsState::Delaware);
-    //
-    // println!("{}", { value(penny) });
-    // println!("{}", { value(nickel) });
-    // println!("{}", { value(dime) });
-    // println!("{}", { value(quarter) });
-    //
-    let one: Option<i32> = Some(1);
-    let null: Option<i32> = None;
-
-    println!("{}", basic_hash(one));
-    println!("{}", basic_hash(three));
+    let dice_roll: u8 = 5;
 }
 
-#[allow(unused)]
-fn value(coin: Coin) -> u8 {
-    match coin {
-        Coin::Penny => 1,
-        Coin::Nickel => 5,
-        Coin::Dime => 10,
-        Coin::Quarter(state) => 25,
+fn process_roll(roll: u8) {
+    match roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        _ => move_player(),
     }
 }
 
-fn basic_hash(x: Option<i32>) -> i32 {
-    match x {
-        Some(i) => i + 1,
-        None => 0,
-    }
-}
+fn add_fancy_hat() {}
+fn remove_fancy_hat() {}
+fn move_player() {}
+fn move_player(num_spaces: u8) {}
