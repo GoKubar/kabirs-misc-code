@@ -1,7 +1,6 @@
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use std::cmp::Ordering;
-use std::io;
+use std::{cmp::Ordering, io};
 fn main() {
     let mut arr: [BigUint; 2] = [BigUint::one(), BigUint::zero()];
     let mut curr = 1;

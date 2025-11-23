@@ -76,10 +76,15 @@ impl UsState {
 }
 
 fn main() {
-    let max_value = Some(34u8);
+    // let coin = Coin::Quarter(UsState::Alaska);
+    let coin = Coin::Penny;
 
-    if let Some(max) = max_value {
-        println!("The maximum value is {max}");
+    let msg: Option<String> = describe_state_quarter(coin);
+
+    if let Some(str) = msg {
+        println!("The quarter is {str}");
+    } else {
+        println!("Not a quarter");
     }
 }
 
