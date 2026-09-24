@@ -1,1 +1,0 @@
-/Users/kgoyal26/code/kabirs-misc-code/aoc2025/aoc1/target/debug/aoc1: /Users/kgoyal26/code/kabirs-misc-code/aoc2025/aoc1/src/input.txt /Users/kgoyal26/code/kabirs-misc-code/aoc2025/aoc1/src/main.rs /Users/kgoyal26/code/kabirs-misc-code/aoc2025/aoc1/src/test.txt
