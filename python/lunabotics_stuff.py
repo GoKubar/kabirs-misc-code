@@ -22,7 +22,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import Imu, PointCloud2
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Float64
 
@@ -37,7 +37,22 @@ class RobotController(Node):
 
         # Publish to /error when the position delta exceeds this (TASK 2.3).
         # This is a starting value -- justify whatever you settle on.
-        self.error_thresh = 0.5
+        """
+        I settled on 0.18 (radians) my error threshold for yaw by running my
+        task 1.3 bezier curve at a few different speeds and measuring the max
+        delta error over these runs. The average (of these maxes) 
+        was roughly 0.165 radians with not too much run to run variance,
+        but to be a bit conservative I chose 0.18 as my error threshold
+        to be just above the range of normal variance (max of maxes for
+        normal runs was ~0.177). 
+
+        Note that these runs were done at what I arbitrarily chose to be a "reasonable"
+        speed (<=3 m/s), since the simulator doesn't seem to limit it at all. Increasing
+        the speed past this arbitrarily chosen limit increased the average max error,
+        so in the real world when our robot would actually have a physical speed limit,
+        these would all be considered errors.
+        """
+        self.error_thresh = 0.18
 
         # ---- TASK 1.2: publisher that drives the robot ---------------------
         # Which topic moves the robot? Find it first (TASK 1.1), then uncomment.
@@ -110,15 +125,19 @@ class RobotController(Node):
         # ---- TASK 2.2: subscriber for the robot's 6D pose ------------------
         # One of the two onboard sensors reports 6D data. Find it (TASK 2.1).
         #
-        # self.robot_pos_sub = self.create_subscription(
-        #     <TODO: msg type>,
-        #     '<TODO: topic name>',
-        #     self.on_robot_pos,
-        #     qos_profile_sensor_data,
-        # )
+        self.robot_pos_sub = self.create_subscription(
+            Imu,
+            "/imu",
+            self.on_robot_pos,
+            qos_profile_sensor_data,
+        )
+
+        self.robot_angular_velocity = 0
 
         # ---- TASK 2.3: where the measured-vs-actual error goes -------------
-        # self.error_pub = self.create_publisher(Float64, '/error', 10)
+        self.error_pub = self.create_publisher(Float64, "/error", 10)
+        self.max_heading_error = 0
+        self.max_angular_vel_error = 0
         #
         # Hint: ground truth for "actual" is published by the simulator on the
         # robot's odometry topic (nav_msgs/Odometry). Deciding what to compare,
@@ -141,6 +160,7 @@ class RobotController(Node):
             "robot_controller started (scaffold -- nothing wired up yet)"
         )
 
+    # get pose + angular vel from odo
     def update_pose(self, msg):
         self.robot_x = msg.pose.pose.position.x
         self.robot_y = msg.pose.pose.position.y
@@ -152,6 +172,8 @@ class RobotController(Node):
             2.0 * (q.w * q.z + q.x * q.y),
             1.0 - 2.0 * (q.y * q.y + q.z * q.z),
         )
+
+        self.robot_angular_velocity = msg.twist.twist.angular.z
 
         # self.get_logger().info(
         #     f"x={self.robot_x:.3f}, y={self.robot_y:.3f}, "
@@ -178,9 +200,9 @@ class RobotController(Node):
             self.last_t,
         )
 
-        self.get_logger().info(
-            f"current_t= {self.last_t:3f}, closest_t= {t:3f}, diff={abs(t - self.last_t):3f}"
-        )
+        # self.get_logger().info(
+        #     f"current_t= {self.last_t:3f}, closest_t= {t:3f}, diff={abs(t - self.last_t):3f}"
+        # )
 
         # make sure it goes forward, not back
         t = max(t, self.last_t)
@@ -257,7 +279,64 @@ class RobotController(Node):
 
         TODO: decide what "delta" means here and justify it in a comment.
         """
-        raise NotImplementedError("TASK 2.3")
+
+        """
+        I decided that delta would be heading (yaw) error. 
+        First, since the robot in the simulation data was only moving
+        on a flat plane, I deemed it unecessary to consider
+        pitch and roll. From there, I logged the heading (yaw),
+        angular vel (omega), and linear acceleration to the terminal.
+        
+        The IMU doesn't provide position data. I initially considered
+        using linear acceleration to derive it, but
+        I noticed that the IMU only updated at 1 Hz, which 
+        means that to get position from the linear acceleration we would have to do
+        double discrete integration while accounting for robot vs world frame 
+        differences at 1 Hz which would be wildly innacurate
+        with continuously changing heading and velocity vectors when
+        following something like the bezier curve from task 1.3. 
+
+        Since the task asks for an 'idea of where we are', I thus decided
+        that yaw would be the best quantity to measure. 
+        (I also tested angular velocity data, but it was mostly consistent
+        regardless of speed, so I didn't deem it useful)
+
+        Thus, delta represents the difference between the IMU's
+        yaw measurement and that from the simulator's odometry.
+        I chose an error threshold of 0.18 radians, which I justified
+        above.
+        """
+
+        q = msg.orientation
+
+        imu_heading = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z),
+        )
+
+        imu_angular_vel = msg.angular_velocity.z
+
+        if self.robot_heading is None:
+            return
+
+        delta_heading = wrap_angle_radians(imu_heading - self.robot_heading)
+        delta_angular_vel = imu_angular_vel - self.robot_angular_velocity
+        self.max_heading_error = max(self.max_heading_error, abs(delta_heading))
+        self.max_angular_vel_error = max(
+            self.max_angular_vel_error, abs(delta_angular_vel)
+        )
+
+        self.get_logger().info(
+            f"delta_heading: {delta_heading:4f}, delta_angular_vel: {delta_angular_vel}"
+        )
+        self.get_logger().info(
+            f"max heading error: {self.max_heading_error:4f}, max angular vel error: {self.max_angular_vel_error:4f}"
+        )
+
+        if abs(delta_heading) > self.error_thresh:
+            error_msg = Float64()
+            error_msg.data = abs(delta_heading)
+            self.error_pub.publish(error_msg)
 
     # -----------------------------------------------------------------------
     # TASK 3.3 -- classify a single lidar point
@@ -494,6 +573,17 @@ def lerp(
         p0[0] + t * (p1[0] - p0[0]),
         p0[1] + t * (p1[1] - p0[1]),
     )
+
+
+def wrap_angle_radians(angle: float) -> float:
+    from math import pi
+
+    while angle < -pi:
+        angle += 2 * pi
+    while angle > pi:
+        angle -= 2 * pi
+
+    return angle
 
 
 if __name__ == "__main__":

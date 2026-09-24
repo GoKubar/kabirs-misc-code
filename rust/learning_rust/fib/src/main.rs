@@ -8,6 +8,7 @@ fn main() {
     let mut n = String::new();
     println!("Enter the fibonacci number that you want:");
 
+    fuck;
     io::stdin().read_line(&mut n).expect("Line not read");
 
     let n: usize = n.trim().parse().expect("Enter a valid fib number");
